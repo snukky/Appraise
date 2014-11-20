@@ -12,3 +12,5 @@ Thumbs.db
 RUN
 manage.py
 appraise.pid
+*~
+*.swp
