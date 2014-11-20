@@ -31,7 +31,7 @@ def frontpage(request):
     dictionary = {
       'commit_tag': COMMIT_TAG,
       'title': 'Appraise evaluation system',
-      'installed_apps': ['wmt14'],
+      'installed_apps': ['evaluation'],
       'admin_url': admin_url,
     }
     
@@ -51,7 +51,7 @@ def login(request, template_name):
           'message': 'You are already logged in as "{0}".'.format(
             request.user.username),
           'title': 'Appraise evaluation system',
-          'installed_apps': ['wmt14'],
+          'installed_apps': ['evaluation'],
         }
         
         return render(request, 'frontpage.html', dictionary)

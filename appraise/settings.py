@@ -154,6 +154,6 @@ INSTALLED_APPS = (
   'django.contrib.staticfiles',
   'django.contrib.admin',
   'django.contrib.messages',
-
-  'appraise.wmt14',
+  'appraise.evaluation',
+  #'appraise.wmt14',
 )
