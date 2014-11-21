@@ -655,6 +655,11 @@ def _handle_edits_ranking(request, task, items):
 
     # Compute source and reference texts including context where possible.
     source_text, reference_text = _compute_context_for_item(item)
+    reference_text = (
+        reference_text[0], 
+        _add_spans_on_edits(escape(reference_text[1]), escape(source_text[1])),
+        reference_text[2]
+    )
     
     # Retrieve the number of finished items for this user and the total number
     # of items for this task. We increase finished_items by one as we are

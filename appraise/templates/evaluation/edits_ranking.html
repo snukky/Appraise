@@ -60,7 +60,7 @@ function validate_form()
 </div>
 <div class="span5 offset1">
 <blockquote>
-<p>{% if reference_text.0 %}{{reference_text.0}}<br /> {% endif %}<strong>{{reference_text.1}}</strong>{% if reference_text.2 %}<br /> {{reference_text.2}}{% endif %}</p>
+<p>{% if reference_text.0 %}{{reference_text.0}}<br /> {% endif %}<strong>{{reference_text.1|safe}}</strong>{% if reference_text.2 %}<br /> {{reference_text.2}}{% endif %}</p>
 <small>Reference</small>
 </blockquote>
 </div>
