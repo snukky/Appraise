@@ -614,6 +614,7 @@ def _handle_edits_ranking(request, task, items):
     if form_valid:
         # Retrieve EvalutionItem instance for the given id or raise Http404.
         current_item = get_object_or_404(EvaluationItem, pk=int(item_id))
+        current_groups = _group_translations(current_item.translations)
         
         # Compute duration for this item.
         start_datetime = datetime.fromtimestamp(float(start_timestamp))
@@ -625,9 +626,15 @@ def _handle_edits_ranking(request, task, items):
         
         # Compute ranks for translation alternatives using order.
         ranks = {}
-        for index in range(len(current_item.translations)):
+        for index in range(len(current_groups)):
             rank = request.POST.get('rank_{0}'.format(index), -1)
             ranks[order[index]] = int(rank)
+
+        # Copy ranks to translations in the same group.
+        for _, group in current_groups.iteritems():
+            rank = ranks[group[0]]
+            for index in group[1:]:
+                ranks[index] = rank
         
         # If "Flag Error" was clicked, _raw_result is set to "SKIPPED".
         if submit_button == 'FLAG_ERROR':
@@ -654,19 +661,20 @@ def _handle_edits_ranking(request, task, items):
     # processing the first unfinished item.
     finished_items, total_items = task.get_finished_for_user(request.user)
     finished_items += 1
+
+    # Create mapping for translation groups.
+    groups = _group_translations(item.translations)
     
     # Create list of translation alternatives in randomised order.
     translations = []
-    order = range(len(item.translations))
-    shuffle(order)
-    for index in order:
-        # Each item.translations element is a touple with two elements, first
-        # one is translation text.
+    order = []
+    for translation, indexes in groups.iteritems():
         new_translation = _add_spans_on_edits(
-            escape(item.translations[index][0]), 
+            escape(translation),
             escape(source_text[1])
         )
-        translations.append((new_translation, item.translations[index][1]))
+        translations.append((new_translation, None))
+        order.append(indexes[0])
     
     dictionary = {
       'action_url': request.path,
@@ -683,6 +691,15 @@ def _handle_edits_ranking(request, task, items):
     
     return render(request, 'evaluation/edits_ranking.html', dictionary)
 
+
+def _group_translations(translations):
+     groups = {}
+     for idx, translation in enumerate(translations):
+        if translation[0] in groups:
+            groups[translation[0]].append(idx)
+        else:
+            groups[translation[0]] = [idx]
+     return groups
 
 def _add_spans_on_edits(translation, source_text):
     edits = DiffFinder().edited_tokens(translation.split(),
