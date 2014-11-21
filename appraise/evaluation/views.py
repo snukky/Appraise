@@ -677,7 +677,7 @@ def _handle_edits_ranking(request, task, items):
       'reference_text': reference_text,
       'source_text': source_text,
       'task_progress': '{0:03d}/{1:03d}'.format(finished_items, total_items),
-      'title': 'Ranking',
+      'title': 'Edits Ranking',
       'translations': translations,
     }
     
