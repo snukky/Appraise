@@ -32,6 +32,7 @@ APPRAISE_TASK_TYPE_CHOICES = (
   ('3', 'Post-editing'),
   ('4', 'Error classification'),
   ('5', '3-Way Ranking'),
+  ('6', 'Edits Ranking'),
 )
 
 
@@ -249,6 +250,9 @@ class EvaluationTask(models.Model):
         
         elif _task_type == '3-Way Ranking':
             pass
+
+        elif _task_type == 'Edits Ranking':
+            pass
         
         return _header
     
@@ -298,6 +302,9 @@ class EvaluationTask(models.Model):
             pass
         
         elif _task_type == '3-Way Ranking':
+            pass
+
+        elif _task_type == 'Edits Ranking':
             pass
         
         return _status
@@ -592,6 +599,10 @@ class EvaluationResult(models.Model):
                 
                 elif _task_type == '3-Way Ranking':
                     self.results = self.raw_result
+
+                elif _task_type == 'Edits Ranking':
+                    self.results = self.raw_result.split(',')
+                    self.results = [int(x) for x in self.results]
             
             # pylint: disable-msg=W0703
             except Exception, msg:
@@ -616,6 +627,9 @@ class EvaluationResult(models.Model):
         
         elif _task_type == '3-Way Ranking':
             return self.export_to_three_way_ranking_xml()
+        
+        elif _task_type == 'Edits Ranking':
+            return self.export_to_ranking_xml()
     
     def export_to_quality_checking_xml(self):
         """

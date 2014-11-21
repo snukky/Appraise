@@ -584,6 +584,96 @@ def _handle_three_way_ranking(request, task, items):
     
     return render(request, 'evaluation/three_way_ranking.html', dictionary)
 
+@login_required
+def _handle_edits_ranking(request, task, items):
+    """
+    Handler for Edits Ranking tasks.
+    
+    Finds the next item belonging to the given task, renders the page template
+    and creates an EvaluationResult instance on HTTP POST submission.
+    
+    """
+    form_valid = False
+    
+    # If the request has been submitted via HTTP POST, extract data from it.
+    if request.method == "POST":
+        item_id = request.POST.get('item_id', None)
+        end_timestamp = request.POST.get('end_timestamp', None)
+        order_random = request.POST.get('order', None)
+        start_timestamp = request.POST.get('start_timestamp', None)
+        submit_button = request.POST.get('submit_button', None)
+        
+        # The form is only valid if all variables could be found.
+        form_valid = all((item_id, end_timestamp, order_random,
+          start_timestamp, submit_button))
+    
+    # If the form is valid, we have to save the results to the database.
+    if form_valid:
+        # Retrieve EvalutionItem instance for the given id or raise Http404.
+        current_item = get_object_or_404(EvaluationItem, pk=int(item_id))
+        
+        # Compute duration for this item.
+        start_datetime = datetime.fromtimestamp(float(start_timestamp))
+        end_datetime = datetime.fromtimestamp(float(end_timestamp))
+        duration = end_datetime - start_datetime
+        
+        # Initialise order from order_random.
+        order = [int(x) for x in order_random.split(',')]
+        
+        # Compute ranks for translation alternatives using order.
+        ranks = {}
+        for index in range(len(current_item.translations)):
+            rank = request.POST.get('rank_{0}'.format(index), -1)
+            ranks[order[index]] = int(rank)
+        
+        # If "Flag Error" was clicked, _raw_result is set to "SKIPPED".
+        if submit_button == 'FLAG_ERROR':
+            _raw_result = 'SKIPPED'
+        
+        # Otherwise, the _raw_result is a comma-separated list of ranks.
+        elif submit_button == 'SUBMIT':
+            _raw_result = range(len(current_item.translations))
+            _raw_result = ','.join([str(ranks[x]) for x in _raw_result])
+        
+        # Save results for this item to the Django database.
+        _save_results(current_item, request.user, duration, _raw_result)
+    
+    # Find next item the current user should process or return to overview.
+    item = _find_next_item_to_process(items, request.user, task.random_order)
+    if not item:
+        return redirect('appraise.evaluation.views.overview')
+
+    # Compute source and reference texts including context where possible.
+    source_text, reference_text = _compute_context_for_item(item)
+    
+    # Retrieve the number of finished items for this user and the total number
+    # of items for this task. We increase finished_items by one as we are
+    # processing the first unfinished item.
+    finished_items, total_items = task.get_finished_for_user(request.user)
+    finished_items += 1
+    
+    # Create list of translation alternatives in randomised order.
+    translations = []
+    order = range(len(item.translations))
+    shuffle(order)
+    for index in order:
+        translations.append(item.translations[index])
+    
+    dictionary = {
+      'action_url': request.path,
+      'commit_tag': COMMIT_TAG,
+      'description': task.description,
+      'item_id': item.id,
+      'order': ','.join([str(x) for x in order]),
+      'reference_text': reference_text,
+      'source_text': source_text,
+      'task_progress': '{0:03d}/{1:03d}'.format(finished_items, total_items),
+      'title': 'Ranking',
+      'translations': translations,
+    }
+    
+    return render(request, 'evaluation/ranking.html', dictionary)
+
 
 @login_required
 def task_handler(request, task_id):
@@ -616,6 +706,9 @@ def task_handler(request, task_id):
     
     elif _task_type == '3-Way Ranking':
         return _handle_three_way_ranking(request, task, items)
+    
+    elif _task_type == 'Edits Ranking':
+        return _handle_edits_ranking(request, task, items)
     
     _msg = 'No handler for task type: "{0}"'.format(_task_type)
     raise NotImplementedError, _msg
