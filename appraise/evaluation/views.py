@@ -631,7 +631,7 @@ def _handle_edits_ranking(request, task, items):
             ranks[order[index]] = int(rank)
 
         # Copy ranks to translations in the same group.
-        for _, group in current_groups.iteritems():
+        for _, group in current_groups:
             rank = ranks[group[0]]
             for index in group[1:]:
                 ranks[index] = rank
@@ -655,7 +655,7 @@ def _handle_edits_ranking(request, task, items):
 
     # Compute source and reference texts including context where possible.
     source_text, reference_text = _compute_context_for_item(item)
-    reference_text = (
+    reference_text_with_spans = (
         reference_text[0], 
         _add_spans_on_edits(escape(reference_text[1]), escape(source_text[1])),
         reference_text[2]
@@ -668,12 +668,13 @@ def _handle_edits_ranking(request, task, items):
     finished_items += 1
 
     # Create mapping for translation groups.
-    groups = _group_translations(item.translations)
+    groups = _group_translations(item.translations, source_text[1], 
+        reference_text[1])
     
     # Create list of translation alternatives in randomised order.
     translations = []
     order = []
-    for translation, indexes in groups.iteritems():
+    for translation, indexes in groups:
         new_translation = _add_spans_on_edits(
             escape(translation),
             escape(source_text[1])
@@ -687,7 +688,7 @@ def _handle_edits_ranking(request, task, items):
       'description': task.description,
       'item_id': item.id,
       'order': ','.join([str(x) for x in order]),
-      'reference_text': reference_text,
+      'reference_text': reference_text_with_spans,
       'source_text': source_text,
       'task_progress': '{0:03d}/{1:03d}'.format(finished_items, total_items),
       'title': 'Edits Ranking',
@@ -697,16 +698,43 @@ def _handle_edits_ranking(request, task, items):
     return render(request, 'evaluation/edits_ranking.html', dictionary)
 
 
-def _group_translations(translations):
-     groups = {}
-     for idx, translation in enumerate(translations):
-        if translation[0] in groups:
-            groups[translation[0]].append(idx)
-        else:
-            groups[translation[0]] = [idx]
-     return groups
+def _group_translations(translations, source_text=None, reference_text=None):
+    """
+    Groups translations by translation text.
+
+    Returns an array of touples with two elements: ('translation', [1,2,3,4]).
+    If source and reference texts are given, they are put on the front of and
+    on the end of the returning array.
+    """
+    mapping = {}
+    for idx, translation in enumerate(translations):
+       if translation[0] in mapping:
+           mapping[translation[0]].append(idx)
+       else:
+           mapping[translation[0]] = [idx]
+
+    groups = []
+    if source_text is not None and source_text in mapping:
+        groups.append((source_text, mapping[source_text]))
+        del mapping[source_text]
+
+    reference_indexes = None
+    if reference_text is not None and reference_text in mapping:
+        reference_indexes = mapping[reference_text]
+        del mapping[reference_text]
+
+    for key, value in mapping.iteritems():
+        groups.append((key, value))
+    if reference_indexes:
+        groups.append((reference_text, reference_indexes))
+
+    return groups
 
 def _add_spans_on_edits(translation, source_text):
+    """
+    Adds <span> elements on edits (changed, added or removed fragments) to
+    escaped translation text.
+    """
     edits = DiffFinder().edited_tokens(translation.split(),
         source_text.split())
     output = translation.split()
