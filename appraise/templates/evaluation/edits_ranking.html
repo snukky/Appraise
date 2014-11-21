@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
+<link rel="stylesheet" type="text/css" href="{{STATIC_URL}}css/custom.css">
 <script src="{{STATIC_URL}}js/jquery-1.7.1.min.js"></script>
 <script>
 <!--
@@ -53,13 +54,13 @@ function validate_form()
 {% if reference_text.1 %}
 <div class="span5">
 <blockquote>
-<p>{% if source_text.0 %}{{source_text.0}} {% endif %}<strong>{{source_text.1}}</strong>{% if source_text.2 %} {{source_text.2}}{% endif %}</p>
+<p>{% if source_text.0 %}{{source_text.0}}<br /> {% endif %}<strong>{{source_text.1}}</strong>{% if source_text.2 %}<br /> {{source_text.2}}{% endif %}</p>
 <small>Source</small>
 </blockquote>
 </div>
 <div class="span5 offset1">
 <blockquote>
-<p>{% if reference_text.0 %}{{reference_text.0}} {% endif %}<strong>{{reference_text.1}}</strong>{% if reference_text.2 %} {{reference_text.2}}{% endif %}</p>
+<p>{% if reference_text.0 %}{{reference_text.0}}<br /> {% endif %}<strong>{{reference_text.1}}</strong>{% if reference_text.2 %}<br /> {{reference_text.2}}{% endif %}</p>
 <small>Reference</small>
 </blockquote>
 </div>
@@ -88,8 +89,8 @@ function validate_form()
 {% with forloop.counter0 as rank_id %}
 {% include 'evaluation/rank_selector.html' %}
 {% endwith %}
-<p><strong>{{translation.0}}</strong></p>
-<small>Translation {{forloop.counter}}</small>
+<p><strong>{{translation.0|safe}}</strong></p>
+<small>Correction {{forloop.counter}}</small>
 </blockquote>
 </div>
 </div>

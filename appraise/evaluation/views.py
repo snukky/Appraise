@@ -17,10 +17,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template import Context
 from django.template.defaultfilters import slugify
 from django.template.loader import get_template
+from django.utils.html import escape
 
 from appraise.evaluation.models import APPRAISE_TASK_TYPE_CHOICES, \
   EvaluationTask, EvaluationItem, EvaluationResult
 from appraise.settings import LOG_LEVEL, LOG_HANDLER, COMMIT_TAG
+
+from appraise.evaluation.diff_finder import DiffFinder
 
 # Setup logging support.
 logging.basicConfig(level=LOG_LEVEL)
@@ -657,7 +660,13 @@ def _handle_edits_ranking(request, task, items):
     order = range(len(item.translations))
     shuffle(order)
     for index in order:
-        translations.append(item.translations[index])
+        # Each item.translations element is a touple with two elements, first
+        # one is translation text.
+        new_translation = _add_spans_on_edits(
+            escape(item.translations[index][0]), 
+            escape(source_text[1])
+        )
+        translations.append((new_translation, item.translations[index][1]))
     
     dictionary = {
       'action_url': request.path,
@@ -672,7 +681,25 @@ def _handle_edits_ranking(request, task, items):
       'translations': translations,
     }
     
-    return render(request, 'evaluation/ranking.html', dictionary)
+    return render(request, 'evaluation/edits_ranking.html', dictionary)
+
+
+def _add_spans_on_edits(translation, source_text):
+    edits = DiffFinder().edited_tokens(translation.split(),
+        source_text.split())
+    output = translation.split()
+
+    for new_edit, old_edit, i, j in edits:
+        if old_edit == '':
+            output[i] = '<span class="edit-add">' + output[i]
+            output[j] = '</span> ' + output[j]
+        elif new_edit == '':
+            output[i] = '<span class="edit-del">{}</span> {}'.format(
+                old_edit, output[i])
+        else:
+            output[i] = '<span class="edit-cor">' + output[i]
+            output[j] = '</span> ' + output[j]
+    return ' '.join(output)
 
 
 @login_required

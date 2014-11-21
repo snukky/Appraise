@@ -1,0 +1,4 @@
+.edit-add { color:green; }
+.edit-del { text-decoration:line-through; color:red; }
+.edit-err { display:none; }
+.edit-cor { color:green; }
