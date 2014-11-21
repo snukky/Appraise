@@ -36,6 +36,8 @@ ERROR_CLASSES = ("terminology", "lexical_choice", "syntax", "insertion",
 
 APPRAISE_TASK_CACHE = {}
 
+RANKING_SUBSET_SIZE = 5
+
 
 def _update_task_cache(task, user):
     """
@@ -626,14 +628,20 @@ def _handle_edits_ranking(request, task, items):
         
         # Compute ranks for translation alternatives using order.
         ranks = {}
-        for index in range(len(current_groups)):
+        for index in range(len(order)):
             rank = request.POST.get('rank_{0}'.format(index), -1)
             ranks[order[index]] = int(rank)
 
         # Copy ranks to translations in the same group.
+        # Negative values indicate that there is no rank for the correction.
+        unranked = -1
         for _, group in current_groups:
-            rank = ranks[group[0]]
-            for index in group[1:]:
+            if group[0] in ranks:
+                rank = ranks[group[0]]
+            else:
+                rank = unranked
+                unranked -= 1
+            for index in group:
                 ranks[index] = rank
         
         # If "Flag Error" was clicked, _raw_result is set to "SKIPPED".
@@ -670,6 +678,16 @@ def _handle_edits_ranking(request, task, items):
     # Create mapping for translation groups.
     groups = _group_translations(item.translations, source_text[1], 
         reference_text[1])
+
+    # Keep only fixed number of corrections to rank.
+    overflow = len(groups) - RANKING_SUBSET_SIZE
+    if overflow > 0:
+        to_remove = range(len(groups))
+        shuffle(to_remove)
+        to_remove = to_remove[0:overflow]
+        groups = [group 
+                  for idx, group in enumerate(groups) 
+                  if idx not in to_remove]
     
     # Create list of translation alternatives in randomised order.
     translations = []
@@ -680,8 +698,9 @@ def _handle_edits_ranking(request, task, items):
             escape(source_text[1])
         )
         translations.append((new_translation, None))
+        # Random order ensured by unordered dict in _group_translations().
         order.append(indexes[0])
-    
+     
     dictionary = {
       'action_url': request.path,
       'commit_tag': COMMIT_TAG,
