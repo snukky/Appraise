@@ -1,4 +1,4 @@
 .edit-add { color:blue; }
-.edit-del { text-decoration:line-through; color:red; }
+.edit-del { text-decoration:line-through; color:blue; opacity:0.25; }
 .edit-err { display:none; }
-.edit-cor { color:green; }
+.edit-cor { color:blue; }
