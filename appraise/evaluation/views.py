@@ -693,14 +693,21 @@ def _handle_error_correction_ranking(request, task, items):
     translations = []
     order = []
     for translation, indexes in groups:
+
+        print translation
+        
         new_translation = _add_spans_on_edits(
             escape(translation),
             escape(source_text[1])
         )
+        
+        print new_translation
+        print '----------------'
+        
         translations.append((new_translation, None))
         # Random order ensured by unordered dict in _group_translations().
         order.append(indexes[0])
-     
+    
     dictionary = {
       'action_url': request.path,
       'commit_tag': COMMIT_TAG,
@@ -758,16 +765,26 @@ def _add_spans_on_edits(translation, source_text):
         source_text.split())
     output = translation.split()
 
+    print edits
+
     for new_edit, old_edit, i, j in edits:
         if old_edit == '':
             output[i] = '<span class="edit-add">' + output[i]
-            output[j] = '</span> ' + output[j]
+            output[j-1] += '</span>'
         elif new_edit == '':
-            output[i] = '<span class="edit-del">{}</span> {}'.format(
-                old_edit, output[i])
+            if i == 0:
+                output[0] = '<span class="edit-del">{}</span> {}'.format(
+                    old_edit, output[0])
+            else:
+                output[i-1] = '{} <span class="edit-del">{}</span>'.format(
+                    output[i-1], old_edit)
         else:
-            output[i] = '<span class="edit-cor">' + output[i]
-            output[j] = '</span> ' + output[j]
+            if i == 0:
+                output[0] = '<span class="edit-cor">' + output[0]
+                output[j-1] += '</span>'
+            else:
+                output[i-1] = output[i-1] + ' <span class="edit-cor">'
+                output[j-1] += '</span>'
     return ' '.join(output)
 
 
