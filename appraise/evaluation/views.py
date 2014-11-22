@@ -590,9 +590,9 @@ def _handle_three_way_ranking(request, task, items):
     return render(request, 'evaluation/three_way_ranking.html', dictionary)
 
 @login_required
-def _handle_edits_ranking(request, task, items):
+def _handle_error_correction_ranking(request, task, items):
     """
-    Handler for Edits Ranking tasks.
+    Handler for Error Correction Ranking tasks.
     
     Finds the next item belonging to the given task, renders the page template
     and creates an EvaluationResult instance on HTTP POST submission.
@@ -676,8 +676,8 @@ def _handle_edits_ranking(request, task, items):
     finished_items += 1
 
     # Create mapping for translation groups.
-    groups = _group_translations(item.translations, source_text[1], 
-        reference_text[1])
+    groups = _group_translations(item.translations)
+        ### source_text[1], reference_text[1])
 
     # Keep only fixed number of corrections to rank.
     overflow = len(groups) - RANKING_SUBSET_SIZE
@@ -710,11 +710,11 @@ def _handle_edits_ranking(request, task, items):
       'reference_text': reference_text_with_spans,
       'source_text': source_text,
       'task_progress': '{0:03d}/{1:03d}'.format(finished_items, total_items),
-      'title': 'Edits Ranking',
+      'title': 'Error Correction Ranking',
       'translations': translations,
     }
     
-    return render(request, 'evaluation/edits_ranking.html', dictionary)
+    return render(request, 'evaluation/error_correction_ranking.html', dictionary)
 
 
 def _group_translations(translations, source_text=None, reference_text=None):
@@ -803,8 +803,8 @@ def task_handler(request, task_id):
     elif _task_type == '3-Way Ranking':
         return _handle_three_way_ranking(request, task, items)
     
-    elif _task_type == 'Edits Ranking':
-        return _handle_edits_ranking(request, task, items)
+    elif _task_type == 'Error Correction Ranking':
+        return _handle_error_correction_ranking(request, task, items)
     
     _msg = 'No handler for task type: "{0}"'.format(_task_type)
     raise NotImplementedError, _msg
