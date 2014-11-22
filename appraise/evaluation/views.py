@@ -779,12 +779,9 @@ def _add_spans_on_edits(translation, source_text):
                 output[i-1] = '{} <span class="edit-del">{}</span>'.format(
                     output[i-1], old_edit)
         else:
-            if i == 0:
-                output[0] = '<span class="edit-cor">' + output[0]
-                output[j-1] += '</span>'
-            else:
-                output[i-1] = output[i-1] + ' <span class="edit-cor">'
-                output[j-1] += '</span>'
+            output[i] = '<span class="edit-err">' + old_edit + '</span>' \
+                '<span class="edit-cor">' + output[i]
+            output[j-1] += '</span>'
     return ' '.join(output)
 
 
