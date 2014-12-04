@@ -1,3 +1,7 @@
+<span class="rank-btn rank-best">Best</span>
+<span class="rank-arrow">&#8592;</span>
 {% for translation in translations %}
-<span onclick="$(this).children('input').attr('checked', 'checked');"><input type="radio" name="rank_{{rank_id}}" value="{{forloop.counter}}" /> Rank {{forloop.counter}}</span>
+<span class="rank-btn" onclick="$(this).children('input').attr('checked', 'checked');"><input type="radio" name="rank_{{rank_id}}" value="{{forloop.counter}}" /> Rank {{forloop.counter}}</span>
 {% endfor %}
+<span class="rank-arrow">&#8594;</span>
+<span class="rank-btn rank-worst">Worst</span>

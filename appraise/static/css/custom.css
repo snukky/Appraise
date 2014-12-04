@@ -2,3 +2,55 @@
 .edit-del { text-decoration:line-through; color:blue; opacity:0.25; filter:alpha(opacity=25); }
 .edit-err { display:none; }
 .edit-cor { color:blue; }
+
+.rank-btn { 
+  margin: 0 1px 2px 1px; 
+  padding: 3px 10px 3px 8px;
+  background-color: #F5F5F5;
+  background-image: linear-gradient(to bottom, #FFFFFF, #E6E6E6);
+  background-repeat: repeat-x;
+  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) #B3B3B3;
+  color: #333333;
+  /*
+  background-color: #FF9900;
+  background-image: linear-gradient(to bottom, #FFAD33, #E68A00);
+  background-repeat: repeat-x;
+  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) #B3B3B3;
+  color: #FFFFFF;
+  */
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 0 1px 2px rgba(0, 0, 0, 0.05);
+  -moz-border-bottom-colors: none;
+  -moz-border-left-colors: none;
+  -moz-border-right-colors: none;
+  -moz-border-top-colors: none;
+  border-image: none;
+  border-radius: 4px;
+  border-style: solid;
+  border-width: 1px;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+}
+.rank-btn > input[type="radio"] { 
+  margin-top: -2px;
+}
+.rank-best {
+  background-color: #297A29;
+  background-image: linear-gradient(to bottom, 	#3E873E, #216221);
+  background-repeat: repeat-x;
+  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) #B3B3B3;
+  color: #FFFFFF;
+  cursor: default;
+}
+.rank-worst {
+  background-color: #CC0000;
+  background-image: linear-gradient(to bottom, #D11919, #A30000);
+  background-repeat: repeat-x;
+  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) #B3B3B3;
+  color: #FFFFFF;
+  cursor: default;
+}
+.rank-arrow { font-size: 20px; }
