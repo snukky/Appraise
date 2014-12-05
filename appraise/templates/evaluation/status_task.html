@@ -37,16 +37,12 @@
 <div class="span12">
 <h3>Results Overview</h3>
 <table class="table table-striped table-bordered">
-<tr>
 {% for item in raw_results %}
+<tr>
   <th>{{item.0}}</th>
-{% endfor %}
-</tr>
-<tr>
-{% for item in raw_results %}
   <td>{{item.1}} ({{item.2|floatformat:2}}%)</td>
-{% endfor %}
 </tr>
+{% endfor %}
 </table>
 </div>
 </div>
