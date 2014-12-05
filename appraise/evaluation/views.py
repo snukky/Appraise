@@ -633,14 +633,9 @@ def _handle_error_correction_ranking(request, task, items):
             ranks[order[index]] = int(rank)
 
         # Copy ranks to translations in the same group.
-        # Negative values indicate that there is no rank for the correction.
-        unranked = -1
+        # Zero value indicates that there is no rank for the correction.
         for _, group in current_groups:
-            if group[0] in ranks:
-                rank = ranks[group[0]]
-            else:
-                rank = unranked
-                unranked -= 1
+            rank = ranks.get(group[0], 0)
             for index in group:
                 ranks[index] = rank
         
