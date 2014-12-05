@@ -6,7 +6,7 @@ Project: Appraise evaluation system
 import logging
 
 from collections import Counter
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from random import randint, seed, shuffle
 from time import mktime
 
@@ -652,7 +652,7 @@ def _handle_error_correction_ranking(request, task, items):
         elif submit_button == 'SUBMIT':
             _raw_result = range(len(current_item.translations))
             _raw_result = ','.join([str(ranks[x]) for x in _raw_result])
-        
+       
         # Save results for this item to the Django database.
         _save_results(current_item, request.user, duration, _raw_result)
     
@@ -660,6 +660,18 @@ def _handle_error_correction_ranking(request, task, items):
     item = _find_next_item_to_process(items, request.user, task.random_order)
     if not item:
         return redirect('appraise.evaluation.views.overview')
+    groups = _group_translations(item.translations)
+
+    # Get next item if all translations are identical.
+    while len(groups) == 1:
+        # Store rank 1 for all translations.
+        _raw_result = ','.join(['1' for x in range(len(item.translations))])
+        _save_results(item, request.user, timedelta(0), _raw_result)
+
+        item = _find_next_item_to_process(items, request.user, task.random_order)
+        if not item:
+            return redirect('appraise.evaluation.views.overview')
+        groups = _group_translations(item.translations)
 
     # Compute source and reference texts including context where possible.
     source_text, reference_text = _compute_context_for_item(item)
@@ -675,10 +687,6 @@ def _handle_error_correction_ranking(request, task, items):
     finished_items, total_items = task.get_finished_for_user(request.user)
     finished_items += 1
 
-    # Create mapping for translation groups.
-    groups = _group_translations(item.translations)
-        ### source_text[1], reference_text[1])
-
     # Keep only fixed number of corrections to rank.
     overflow = len(groups) - RANKING_SUBSET_SIZE
     if overflow > 0:
@@ -693,17 +701,10 @@ def _handle_error_correction_ranking(request, task, items):
     translations = []
     order = []
     for translation, indexes in groups:
-
-        print translation
-        
         new_translation = _add_spans_on_edits(
             escape(translation),
             escape(source_text[1])
         )
-        
-        print new_translation
-        print '----------------'
-        
         translations.append((new_translation, None))
         # Random order ensured by unordered dict in _group_translations().
         order.append(indexes[0])
@@ -764,8 +765,6 @@ def _add_spans_on_edits(translation, source_text):
     edits = DiffFinder().edited_tokens(translation.split(),
         source_text.split())
     output = translation.split()
-
-    print edits
 
     for new_edit, old_edit, i, j in edits:
         if old_edit == '':
