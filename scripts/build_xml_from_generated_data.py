@@ -3,9 +3,13 @@
 
 import argparse
 import sys
+import os
 from collections import namedtuple
 
 OutputData = namedtuple('OutputData', 'id srcid outputs')
+
+EMPTY_SENTENCE = '[EMPTY]'
+
 
 def main():
     args = parse_user_arguments() 
@@ -24,14 +28,16 @@ def main():
         .format(args.data.name, args.source_lang, args.target_lang)
 
     for i, data in enumerate(systems):
+        docid = os.path.basename(args.data.name) if not args.id else args.id
         print '  <seg id="{0}" doc-id="{1}-{0}" src-id="{2}">' \
-            .format(i, args.id, data.srcid)
+            .format(i, docid, data.srcid)
 
-        if data.srcid != 0:
-            print '    <sourcebefore>{}</sourcebefore>'.format(source[data.srcid - 1])
+        source_before = source[data.srcid - 1] if data.srcid != 0 else ''
+        source_after = source[data.srcid + 1] if data.srcid + 1 < len(source) else ''
+
+        print '    <sourcebefore>{}</sourcebefore>'.format(source_before)
         print '    <source>{}</source>'.format(source[data.srcid])
-        if data.srcid + 1 < len(source):
-            print '    <sourceafter>{}</sourceafter>'.format(source[data.srcid + 1])
+        print '    <sourceafter>{}</sourceafter>'.format(source_after)
 
         if i <= len(reference) - 1:
             print '    <reference>{}</reference>'.format(reference[data.srcid])
@@ -47,16 +53,29 @@ def read_system_outputs(file):
     outputs = {}
     id, srcid = None, None
 
+    line_num = 0
+
     for line in file:
         fields = line.strip().split("\t")
+        line_num += 1
+
         if len(fields) == 4:
             id, _, srcid, prob = fields
         elif len(fields) == 2:
             sentence, systems = fields
             outputs[systems] = sentence
+        elif len(fields) == 1:
+            if fields[0] == '':
+                data.append(OutputData(int(id), int(srcid), outputs))
+                outputs = {}
+            else:
+                systems = fields[0]
+                outputs[systems] = EMPTY_SENTENCE 
+                print >> sys.stderr, "warning: found empty translation for " \
+                  "system='{}' in sentence id='{}', source id='{}'" \
+                  .format(systems, id, srcid)
         else:
-            data.append(OutputData(int(id), int(srcid), outputs))
-            outputs = {}
+            print >> sys.stderr, "error: unrecognized line {}".format(line_num)
 
     return data
 
@@ -72,7 +91,7 @@ def parse_user_arguments():
         help="the source language")
     parser.add_argument("-target", type=str, default="cor", dest="target_lang", 
         help="the target language")
-    parser.add_argument("-id", type=str, default="none", 
+    parser.add_argument("-id", type=str, default="", 
         help="ID name to use for the system name")
 
     return parser.parse_args()
