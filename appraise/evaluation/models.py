@@ -466,7 +466,9 @@ class EvaluationItem(models.Model):
     
     # These fields are derived from item_xml and NOT stored in the database.
     attributes = None
+    source_before = None
     source = None
+    source_after = None
     reference = None
     translations = None
     
@@ -511,10 +513,18 @@ class EvaluationItem(models.Model):
                 _item_xml = fromstring(self.item_xml)
                 
                 self.attributes = _item_xml.attrib
+
+                _before = _item_xml.find('sourcebefore')
+                if _before is not None:
+                    self.source_before = (_before.text, _before.attrib)
                 
                 _source = _item_xml.find('source')
                 if _source is not None:
                     self.source = (_source.text, _source.attrib)
+
+                _after = _item_xml.find('sourceafter')
+                if _after is not None:
+                    self.source_after = (_after.text, _after.attrib)
 
                 _reference = _item_xml.find('reference')
                 if _reference is not None:

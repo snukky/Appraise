@@ -32,13 +32,11 @@ def main():
         print '  <seg id="{0}" doc-id="{1}-{0}" src-id="{2}">' \
             .format(i, docid, data.srcid)
 
-        source_before = source[data.srcid - 1] if data.srcid != 0 else ''
-        source_after = source[data.srcid + 1] if data.srcid + 1 < len(source) else ''
-
-        print '    <sourcebefore>{}</sourcebefore>'.format(source_before)
+        if data.srcid != 0:
+            print '    <sourcebefore>{}</sourcebefore>'.format(source[data.srcid - 1])
         print '    <source>{}</source>'.format(source[data.srcid])
-        print '    <sourceafter>{}</sourceafter>'.format(source_after)
-
+        if data.srcid + 1 < len(source):
+            print '    <sourceafter>{}</sourceafter>'.format(source[data.srcid + 1])
         if i <= len(reference) - 1:
             print '    <reference>{}</reference>'.format(reference[data.srcid])
 

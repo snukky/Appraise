@@ -112,8 +112,7 @@ def _find_next_item_to_process(items, user, random_order=False):
     
     return None
 
-
-def _compute_context_for_item(item):
+def _compute_context_for_item(item, skip_reference=False):
     """
     Computes the source and reference texts for item, including context.
     
@@ -124,17 +123,24 @@ def _compute_context_for_item(item):
     source_text = [None, None, None]
     reference_text = [None, None, None]
     
-    left_context = EvaluationItem.objects.filter(task=item.task, pk=item.id-1)
-    right_context = EvaluationItem.objects.filter(task=item.task, pk=item.id+1)
-    
-    _item_doc_id = getattr(item.attributes, 'doc-id', None)
-    
     # Item text and, if available, reference text are always set.
     source_text[1] = item.source[0]
     if item.reference:
         reference_text[1] = item.reference[0]
+
+    # Left/right context for source from XML.
+    if item.source_before:
+        source_text[0] = item.source_before[0]
+    if item.source_after:
+        source_text[2] = item.source_after[0]
     
+    if all(source_text) and skip_reference:
+        return (source_text, reference_text)
+
+    _item_doc_id = getattr(item.attributes, 'doc-id', None)
+
     # Only display context if left/right doc-ids match current item's doc-id.
+    left_context = EvaluationItem.objects.filter(task=item.task, pk=item.id-1)
     if left_context:
         _left = left_context[0]
         _left_doc_id = getattr(_left.attributes, 'doc-id', None)
@@ -144,6 +150,7 @@ def _compute_context_for_item(item):
             if _left.reference:
                 reference_text[0] = _left.reference[0]
     
+    right_context = EvaluationItem.objects.filter(task=item.task, pk=item.id+1)
     if right_context:
         _right = right_context[0]
         _right_doc_id = getattr(_right.attributes, 'doc-id', None)
@@ -616,8 +623,7 @@ def _handle_error_correction_ranking(request, task, items):
     if form_valid:
         # Retrieve EvalutionItem instance for the given id or raise Http404.
         current_item = get_object_or_404(EvaluationItem, pk=int(item_id))
-        current_groups = _group_translations(current_item.translations)
-        
+
         # Compute duration for this item.
         start_datetime = datetime.fromtimestamp(float(start_timestamp))
         end_datetime = datetime.fromtimestamp(float(end_timestamp))
@@ -632,13 +638,6 @@ def _handle_error_correction_ranking(request, task, items):
             rank = request.POST.get('rank_{0}'.format(index), -1)
             ranks[order[index]] = int(rank)
 
-        # Copy ranks to translations in the same group.
-        # Zero value indicates that there is no rank for the correction.
-        for _, group in current_groups:
-            rank = ranks.get(group[0], 0)
-            for index in group:
-                ranks[index] = rank
-        
         # If "Flag Error" was clicked, _raw_result is set to "SKIPPED".
         if submit_button == 'FLAG_ERROR':
             _raw_result = 'SKIPPED'
@@ -655,10 +654,9 @@ def _handle_error_correction_ranking(request, task, items):
     item = _find_next_item_to_process(items, request.user, task.random_order)
     if not item:
         return redirect('appraise.evaluation.views.overview')
-    groups = _group_translations(item.translations)
 
     # Get next item if all translations are identical.
-    while len(groups) == 1:
+    while len(item.translations) == 1:
         # Store rank 1 for all translations.
         _raw_result = ','.join(['1' for x in range(len(item.translations))])
         _save_results(item, request.user, timedelta(0), _raw_result)
@@ -666,15 +664,9 @@ def _handle_error_correction_ranking(request, task, items):
         item = _find_next_item_to_process(items, request.user, task.random_order)
         if not item:
             return redirect('appraise.evaluation.views.overview')
-        groups = _group_translations(item.translations)
 
     # Compute source and reference texts including context where possible.
-    source_text, reference_text = _compute_context_for_item(item)
-    reference_text_with_spans = (
-        reference_text[0], 
-        _add_spans_on_edits(escape(reference_text[1]), escape(source_text[1])),
-        reference_text[2]
-    )
+    source_text, reference_text = _compute_context_for_item(item, True)
     
     # Retrieve the number of finished items for this user and the total number
     # of items for this task. We increase finished_items by one as we are
@@ -682,35 +674,25 @@ def _handle_error_correction_ranking(request, task, items):
     finished_items, total_items = task.get_finished_for_user(request.user)
     finished_items += 1
 
-    # Keep only fixed number of corrections to rank.
-    overflow = len(groups) - RANKING_SUBSET_SIZE
-    if overflow > 0:
-        to_remove = range(len(groups))
-        shuffle(to_remove)
-        to_remove = to_remove[0:overflow]
-        groups = [group 
-                  for idx, group in enumerate(groups) 
-                  if idx not in to_remove]
-    
     # Create list of translation alternatives in randomised order.
     translations = []
-    order = []
-    for translation, indexes in groups:
+    order = range(len(item.translations))
+    shuffle(order)
+    for index in order:
+        translation, attrs = item.translations[index]
         new_translation = _add_spans_on_edits(
             escape(translation),
             escape(source_text[1])
         )
-        translations.append((new_translation, None))
-        # Random order ensured by unordered dict in _group_translations().
-        order.append(indexes[0])
-    
+        translations.append((new_translation, attrs))
+
     dictionary = {
       'action_url': request.path,
       'commit_tag': COMMIT_TAG,
       'description': task.description,
       'item_id': item.id,
       'order': ','.join([str(x) for x in order]),
-      'reference_text': reference_text_with_spans,
+      'reference_text': None,
       'source_text': source_text,
       'task_progress': '{0:03d}/{1:03d}'.format(finished_items, total_items),
       'title': 'Error Correction Ranking',
@@ -720,13 +702,11 @@ def _handle_error_correction_ranking(request, task, items):
     return render(request, 'evaluation/error_correction_ranking.html', dictionary)
 
 
-def _group_translations(translations, source_text=None, reference_text=None):
+def _group_translations(translations):
     """
     Groups translations by translation text.
 
     Returns an array of touples with two elements: ('translation', [1,2,3,4]).
-    If source and reference texts are given, they are put on the front of and
-    on the end of the returning array.
     """
     mapping = {}
     for idx, translation in enumerate(translations):
@@ -736,19 +716,8 @@ def _group_translations(translations, source_text=None, reference_text=None):
            mapping[translation[0]] = [idx]
 
     groups = []
-    if source_text is not None and source_text in mapping:
-        groups.append((source_text, mapping[source_text]))
-        del mapping[source_text]
-
-    reference_indexes = None
-    if reference_text is not None and reference_text in mapping:
-        reference_indexes = mapping[reference_text]
-        del mapping[reference_text]
-
     for key, value in mapping.iteritems():
         groups.append((key, value))
-    if reference_indexes:
-        groups.append((reference_text, reference_indexes))
 
     return groups
 

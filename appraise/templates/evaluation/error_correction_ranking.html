@@ -51,21 +51,12 @@ function validate_form()
 {% endif %}
 
 <div class="row">
-{% if reference_text.1 %}
 <div class="span12">
 <blockquote>
 <p>{% if source_text.0 %}{{source_text.0}}<br /> {% endif %}<strong>{{source_text.1}}</strong>{% if source_text.2 %}<br /> {{source_text.2}}{% endif %}</p>
 <small>Source with context</small>
 </blockquote>
 </div>
-{% else %}
-<div class="span12">
-<blockquote>
-<p>{% if source_text.0 %}{{source_text.0}} {% endif %}<strong>{{source_text.1}}</strong>{% if source_text.2 %} {{source_text.2}}{% endif %}</p>
-<small>Source</small>
-</blockquote>
-</div>
-{% endif %}
 </div>
 
 <form action="{{action_url}}" method="post" onsubmit="javascript:add_end_timestamp();">
