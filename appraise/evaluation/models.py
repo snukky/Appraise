@@ -421,25 +421,29 @@ def validate_item_xml(value):
             assert(_attr in _tree.attrib.keys()), \
               'missing required <seg> attribute {0}'.format(_attr)
         
+        id = _tree.attrib['id']
+        
         assert(len(_tree.findall('source')) == 1), \
-          'exactly one <source> element expected'
+          'exactly one <source> element expected (seg id={})'.format(id)
         
         assert(_tree.find('source').text is not None), \
-          'missing required <source> text value'
+          'missing required <source> text value (seg id={})'.format(id)
         
         if _tree.find('reference') is not None:
             assert(_tree.find('reference').text is not None), \
-              'missing required <reference> text value'
+              'missing required <reference> text value (seg id={})'.format(id)
         
         assert(len(_tree.findall('translation')) >= 1), \
-          'one or more <translation> elements expected'
+          'one or more <translation> elements expected (seg id={})'.format(id)
         
         for _translation in _tree.iterfind('translation'):
             assert('system' in _translation.attrib.keys()), \
-              'missing required <translation> attribute "system"'
+              'missing required <translation> attribute "system" (seg id={})' \
+                .format(id)
             
             assert(_translation.text is not None), \
-              'missing required <translation> text value'
+              'missing required <translation> text value (seg id={})' \
+                .format(id)
     
     except (AssertionError, ParseError), msg:
         raise ValidationError('Invalid XML: "{0}".'.format(msg))
