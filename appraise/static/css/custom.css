@@ -54,3 +54,5 @@
   cursor: default;
 }
 .rank-arrow { font-size: 20px; }
+
+.flag-error { display: none; }
