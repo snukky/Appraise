@@ -23,7 +23,7 @@ from appraise.evaluation.models import APPRAISE_TASK_TYPE_CHOICES, \
   EvaluationTask, EvaluationItem, EvaluationResult
 from appraise.settings import LOG_LEVEL, LOG_HANDLER, COMMIT_TAG
 
-from appraise.evaluation.diff_finder import DiffFinder
+import difflib
 
 # Setup logging support.
 logging.basicConfig(level=LOG_LEVEL)
@@ -726,26 +726,33 @@ def _add_spans_on_edits(translation, source_text):
     Adds <span> elements on edits (changed, added or removed fragments) to
     escaped translation text.
     """
-    edits = DiffFinder().edited_tokens(translation.split(),
-        source_text.split())
-    output = translation.split()
+    #print "src: {}".format(source_text)
+    #print "tra: {}".format(translation)
 
-    for new_edit, old_edit, i, j in edits:
-        if old_edit == '':
-            output[i] = '<span class="edit-add">' + output[i]
-            output[j-1] += '</span>'
-        elif new_edit == '':
-            if i == 0:
-                output[0] = '<span class="edit-del">{}</span> {}'.format(
-                    old_edit, output[0])
-            else:
-                output[i-1] = '{} <span class="edit-del">{}</span>'.format(
-                    output[i-1], old_edit)
-        else:
-            output[i] = '<span class="edit-err">' + old_edit + '</span>' \
-                '<span class="edit-cor">' + output[i]
-            output[j-1] += '</span>'
-    return ' '.join(output)
+    tra_toks = translation.split()
+    src_toks = source_text.split()
+    output = ''
+
+    matcher = difflib.SequenceMatcher(None, tra_toks, src_toks)
+     
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        tra_tok = ' '.join(tra_toks[i1:i2])
+        src_tok = ' '.join(src_toks[j1:j2])
+
+        #print "  {}: ({},{}) '{}' -> ({},{}) '{}'" \
+            #.format(tag, i1, i2, tra_tok, j1, j2, src_tok)
+
+        if tag == 'equal':
+            output += tra_tok + ' '
+        elif tag == 'replace':
+            output += '<span class="edit-err">{}</span> ' \
+                '<span class="edit-cor">{}</span> '.format(src_tok, tra_tok)
+        elif tag == 'delete':
+            output += '<span class="edit-add">{}</span> '.format(tra_tok)
+        elif tag == 'insert':
+            output += '<span class="edit-del">{}</span> '.format(src_tok)
+
+    return output
 
 
 @login_required
