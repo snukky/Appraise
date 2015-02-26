@@ -536,7 +536,9 @@ class EvaluationItem(models.Model):
                       _translation.attrib))
             
             except ParseError:
+                self.source_before = None
                 self.source = None
+                self.source_after = None
                 self.reference = None
                 self.translations = None
 

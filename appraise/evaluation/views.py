@@ -736,8 +736,8 @@ def _add_spans_on_edits(translation, source_text):
     matcher = difflib.SequenceMatcher(None, tra_toks, src_toks)
      
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        tra_tok = ' '.join(tra_toks[i1:i2])
-        src_tok = ' '.join(src_toks[j1:j2])
+        tra_tok = ' '.join(tra_toks[i1:i2]).encode('utf-8', 'ignore')
+        src_tok = ' '.join(src_toks[j1:j2]).encode('utf-8', 'ignore')
 
         #print "  {}: ({},{}) '{}' -> ({},{}) '{}'" \
             #.format(tag, i1, i2, tra_tok, j1, j2, src_tok)
